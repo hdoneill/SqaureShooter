@@ -21,6 +21,9 @@ $(function() {
 
 //game update function
 function update() {
+
+	checkCollision();
+
 	if (player.input.left == true) {
 		player.x -= player.xVelocity;
 	}
@@ -29,19 +32,22 @@ function update() {
 	}
 
 	if (player.input.jump == true) { //get physics for jumping
-		player.y += player.yVelocity;
+			player.onGround = false;
+			player.yVelocity = -2;
+			player.y += player.yVelocity * 2;
 	}
 	else {
-		if (player.y < 100)
-			player.y -= player.yVelocity;
+		player.y -= player.yVelocity;
 	}
-
+	
 }
 
 //game draw function
 function draw() {
 	ctx.clearRect(0,0, 800, 600);
 	player.draw();
+	map.draw();
+	map1.draw();
 }
 
 
@@ -62,6 +68,27 @@ var player = {
 	}
 }
 
+//map object (look for a better way to do this)
+var map = {
+	color: "blue",
+	x: 10,
+	y: 200,
+	width: 200,
+	height: 50,
+	draw: function() {
+		ctx.fillStyle = this.color;
+		ctx.fillRect(this.x, this.y, this.width, this.height);
+	} 
+}
+
+//make a deep copy of the base map object
+var map1 = jQuery.extend(true, [], map);
+map1.color = "red";
+map1.x = 300;
+map1.y = 300;
+
+var platforms = [map, map1];
+
 //keybinds
 document.addEventListener("keydown", function(ev) {return onKey(ev, ev.keyCode, true); }, false);
 document.addEventListener("keyup", function(ev) {return onKey(ev, ev.keyCode, false); }, false);
@@ -74,3 +101,20 @@ function onKey(ev, key, pressed) {
 	}
 }
 
+//basic collision detection
+function collide(a,b) {
+	return a.x < b.x + b.width &&
+		a.x + a.width > b.x &&
+		a.y < b.y + b.height &&
+		a.y  + a.height > b.y;
+}
+
+//check collisions
+function checkCollision() {
+	//check collision between player and platforms
+	platforms.some(function(platform) {
+		if (collide(platform, player)) {
+			player.y += player.yVelocity;
+		}
+	});
+}
