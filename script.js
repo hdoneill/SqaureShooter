@@ -1,3 +1,13 @@
+/* TODO 
+	- Add better jump/ movemnt physics (Hugh 2)
+	- Add projectiles + projectil collison
+	- Add 2 player controls (Hugh 1)
+	- Add win / lose condiditons 
+	- Add player animation
+*/
+
+
+
 var fps = 60;
 
 var canvas_width = 800;
@@ -22,7 +32,23 @@ $(function() {
 //game update function
 function update() {
 
-	checkCollision();
+	platforms.forEach(function(platform) {
+		var dir = checkCollision(player, platform);
+		if (dir == "l" || dir == "r") {
+			player.xVelocity = 0;
+		}
+		else if (dir == "b") {
+			player.yVelocity = 0;
+		}
+
+		else if (dir == "t") {
+			player.yVelocity = -2;
+		}
+		else {
+			player.xVelocity = 2;
+			player.yVelocity = -2;
+		}
+	});
 
 	if (player.input.left == true) {
 		player.x -= player.xVelocity;
@@ -32,7 +58,6 @@ function update() {
 	}
 
 	if (player.input.jump == true) { //get physics for jumping
-			player.onGround = false;
 			player.yVelocity = -2;
 			player.y += player.yVelocity * 2;
 	}
@@ -46,8 +71,9 @@ function update() {
 function draw() {
 	ctx.clearRect(0,0, 800, 600);
 	player.draw();
-	map.draw();
-	map1.draw();
+	platforms.forEach(function(platform) {
+		platform.draw();
+	});
 }
 
 
@@ -68,8 +94,10 @@ var player = {
 	}
 }
 
-//map object (look for a better way to do this)
-var map = {
+//platform object (look for a better way to do this)
+var platforms = [];
+
+var platform = {
 	color: "blue",
 	x: 10,
 	y: 200,
@@ -81,13 +109,23 @@ var map = {
 	} 
 }
 
-//make a deep copy of the base map object
-var map1 = jQuery.extend(true, [], map);
-map1.color = "red";
-map1.x = 300;
-map1.y = 300;
+//make a deep copy of the base platform object
+var platform1 = jQuery.extend(true, [], platform);
+platform1.color = "red";
+platform1.x = 300;
+platform1.y = 250;
+platforms.push(platform1);
 
-var platforms = [map, map1];
+var platform2 = jQuery.extend(true, [], platform);
+platform2.color = "green";
+platform2.x = 50;
+platform2.y = 250;
+platforms.push(platform2);
+
+var platform3 = jQuery.extend(true, [], platform);
+platform3.x = 175;
+platform3.y = 100;
+platforms.push(platform3);
 
 //keybinds
 document.addEventListener("keydown", function(ev) {return onKey(ev, ev.keyCode, true); }, false);
@@ -102,19 +140,37 @@ function onKey(ev, key, pressed) {
 }
 
 //basic collision detection
-function collide(a,b) {
-	return a.x < b.x + b.width &&
-		a.x + a.width > b.x &&
-		a.y < b.y + b.height &&
-		a.y  + a.height > b.y;
-}
+function checkCollision(a, b) {
+	var vX = (a.x + (a.width / 2)) - (b.x + (b.width / 2)),
+		vY = (a.y + (a.height / 2)) - (b.y + (b.height / 2)),
+		halfWidths = (a.width / 2) + (b.width / 2),
+		halfHeights = (a.height / 2) + (b.height / 2),
+		colSide = null;
 
-//check collisions
-function checkCollision() {
-	//check collision between player and platforms
-	platforms.some(function(platform) {
-		if (collide(platform, player)) {
-			player.y += player.yVelocity;
+		//check if objects are colliding on top, bottom, left or right sides
+	if (Math.abs(vX) < halfWidths && Math.abs(vY) < halfHeights) {
+		var oX = halfWidths - Math.abs(vX),
+			oY = halfHeights - Math.abs(vY);
+		if (oX >= oY) {
+			if (vY > 0) {
+				colSide = "t";
+				a.y += oY;
+			} 
+			else {
+				colSide = "b";
+				a.y -= oY - 1; //find fix for -1 being needed (based on player velocity)
+			}
 		}
-	});
+		else {
+			if (vX > 0) {
+				colSide = "l";
+				a.x += oX - 1;
+			}
+			else {
+				colSide = "r";
+				a.x -= oX - 1;
+			}
+		}
+	}
+	return colSide;
 }
